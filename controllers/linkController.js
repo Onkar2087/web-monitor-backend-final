@@ -232,15 +232,15 @@ export const checkLinkController = async (req, res) => {
 }
 
 export const getStatusController = (req, res) => {
-    const {id} = req.params;
+    const { id } = req.params;
 
     try {
         const link = db.prepare(`
             SELECT * FROM links WHERE id = ?
-        `).get(id)
+        `).get(id);
 
-        if (!link){
-            return res.status(404).json({error:"Link not found"});
+        if (!link) {
+            return res.status(404).json({ error: "Link not found" });
         }
 
         const latestSnapshot = db.prepare(`
@@ -248,7 +248,7 @@ export const getStatusController = (req, res) => {
             WHERE link_id = ?
             ORDER BY created_at DESC
             LIMIT 1    
-        `).get(id)
+        `).get(id);
 
         const history = db.prepare(`
             SELECT created_at
@@ -256,44 +256,48 @@ export const getStatusController = (req, res) => {
             WHERE link_id = ?
             ORDER BY created_at DESC
             LIMIT 5
-        `).all(id)
+        `).all(id);
 
         res.json({
-        url: link.url,
-        latest: latestSnapshot
-            ? {
-                summary: latestSnapshot.summary,
-                diff: (() => {
-    try {
-        return JSON.parse(latestSnapshot.diff || "[]");
-    } catch {
-        return [];
-    }
-})(),
-evidence: (() => {
-    try {
-        return JSON.parse(latestSnapshot.evidence || "[]");
-    } catch {
-        return [];
-    }
-})(),
-created_at: new Date(
-    latestSnapshot.created_at.replace(" ", "T")
-).toLocaleString("en-US")
-            }
-        : null,
-        history: history.map(h => ({
-    created_at: new Date(
-        h.created_at.replace(" ", "T")
-    ).toLocaleString("en-US")
-}))
-    })
+            url: link.url,
+
+            latest: latestSnapshot
+                ? {
+                    summary: latestSnapshot.summary,
+
+                    diff: (() => {
+                        try {
+                            return JSON.parse(latestSnapshot.diff || "[]");
+                        } catch {
+                            return [];
+                        }
+                    })(),
+
+                    evidence: (() => {
+                        try {
+                            return JSON.parse(latestSnapshot.evidence || "[]");
+                        } catch {
+                            return [];
+                        }
+                    })(),
+
+                    created_at: latestSnapshot.created_at
+                }
+                : null,
+
+            history: history.map((h) => ({
+                created_at: h.created_at
+            }))
+        });
+
     } catch (error) {
         console.error(error.message);
-        
-        res.status(500).json({error:"Failed to fetch status"})
+
+        res.status(500).json({
+            error: "Failed to fetch status"
+        });
     }
-}
+};
 
 export const getAllLinksController = (req, res) => {
     try {
